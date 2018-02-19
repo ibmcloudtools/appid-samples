@@ -5,34 +5,34 @@ The script can be part of the organization DevOps pipeline and specific permissi
 We will demonstrate how the script can get an api-key to authenticate with and get the limited IAM credentials that will enable it to access App ID APIs and copy the configuration of an existing App ID instance to a newly created instance.
 
 ### Initial steps
-1. The owner of the account logs in to IBM cloud console and creates a new Service ID.  See how [here](https://console.bluemix.net/docs/iam/serviceid.html#serviceids)
+1. The owner of the account logs in to IBM cloud console and creates a new Service ID.  See instructions [here](https://console.bluemix.net/docs/iam/serviceid.html#serviceids)
 
-2. The owner will create an access policy to the service that will allow it to perform the cloning task, and will assign the platform role of an Editor and the service role of a Writer to all App ID services in the account. See how [here](https://console.bluemix.net/docs/iam/serviceidaccess.html#serviceidpolicy)
+2. The owner creates an access policy for the service that will allow it to perform the cloning task, and assigns the platform role of an Editor and the service role of a Writer to all App ID services in the account. See instructions [here](https://console.bluemix.net/docs/iam/serviceidaccess.html#serviceidpolicy)
 
-	You can read more about App ID actions and roles at [this article](https://console.stage1.bluemix.net/docs/services/appid/iam.html#service-access-management)
+	You can read more about App ID actions and roles in [this article](https://console.stage1.bluemix.net/docs/services/appid/iam.html#service-access-management)
 
-3. The owner will now create an api-key to this service ID, which he will later pass to the DevOps person that operates the cloning task. See how [here](https://console.bluemix.net/docs/iam/serviceid_keys.html#serviceidapikeys) 
+3. The owner creates an api-key for the service ID created in previous steps, which will later be used by a DevOps person that operates the cloning task. See instructions [here](https://console.bluemix.net/docs/iam/serviceid_keys.html#serviceidapikeys) 
  
 For a detailed walkthrough on how to create and manage service IDs see this good [blog](https://www.ibm.com/blogs/bluemix/2017/10/introducing-ibm-cloud-iam-service-ids-api-keys/) post.
 
-> Note: For simplicity, this example shows the cloning of an instance in the same account as the source. For cloning from one account to another, you will be creating 2 different service IDs, one in the source account and another in the target account. Then you will set the policies as appropriate so that the source will have read rights and target will have edit rights, and you will need to use the 2 different api-keys you will create in the cloning script. After you will finish this tutorial, we believe it will be a trivial addition for you to implement.
+> Note: For simplicity, this example shows the cloning of an instance in the same account as the source. For cloning from one account to another, you will need to create two different service IDs, one in the source account and another in the target account. After that you will set the policies as appropriate so that the source will have read rights and target will have edit rights. Additionally, you will need to use the two different api-keys in the cloning script corresponding to each service ID. After you will finish this tutorial, we believe this will be a trivial addition for you to implement.
 
 ### The cloning script
 
 Following are the steps required to create a cloning script.
 
-1. You would need to pass to the cloning script the following: 
+1. The following arguments are required by the cloning script: 
 	1. New instance name 
 	2. Service api-key
-	3. Region in which to create the new instance
+	3. Region in which to create a new instance
 	4. Target resource group id
 	5. App ID Plan ID for the cloned instance
 	6. Source instance ID
 	7. Source instance region 
 	
-2. You can use bx cli to get details of source instance by calling  
+2. You can use `bx cli` to get details of the source instance by calling  
 	`bx resource service-instance $APPID_SOURCE_INSTANCE_NAME`  
-	output would be like:  
+	output would be similar to:  
 	
 	```
 	Name:                  <APPID_SOURCE_INSTANCE_NAME>   
@@ -47,15 +47,14 @@ Following are the steps required to create a cloning script.
 
 	```
 	
-	* To get the plan id of same plan as source instance you can call:  
+	* Use below command to get the plan id of the source instance's plan:  
 	`bx catalog service appid | grep <plan name>`  
-	(You can also clone with a different plan available to you, choose another plan from the list in `bx catalog service appid`)  
-	* You can find available regions calling IBM Cloud CLI: `bx regions`  
-	* To get available resource group IDs call `bx resource groups` and copy the id of the group into which to create the cloned instance
-
+	(You can also clone with a different plan available to you, choose another plan from the list using `bx catalog service appid`)  
+	* You can find available regions using `bx regions`  
+	* To get available resource group IDs use `bx resource groups` and copy the id of the resource group you want to create the cloned instance in
 
 3. In the script:  
-   Get Set the name of the source App ID instance  
+   Set the name of the source App ID instance  
    
 	`CLONED_APPID_INSTANCE_NAME =<cloned instance name>`   
 	`CLONING_SERVICE_APIKEY=<api-key>`  
@@ -74,7 +73,7 @@ Following are the steps required to create a cloning script.
       -H 'Content-Type: application/x-www-form-urlencoded' \
       -d "grant_type=urn%3Aibm%3Aparams%3Aoauth%3Agrant-type%3Aapikey&apikey=$CLONING_SERVICE_APIKEY" 
     ```
-    Response would look like:
+    Response would be similar to:
       
     ```  
     {
@@ -86,14 +85,10 @@ Following are the steps required to create a cloning script.
     }
         
     ```
-    
    Copy the value of `access_token` from the response
-      
     `IAM_TOKEN=<IAM token>`
     
-	
-
-5. Create a new App ID service
+5. Create a new App ID service instance
 	
     ```
     curl -X POST \
@@ -108,7 +103,7 @@ Following are the steps required to create a cloning script.
     }'
     ```  
      
-     Response should be like:  
+     Response would be similar to:  
        
     ```
     {
@@ -144,13 +139,13 @@ Following are the steps required to create a cloning script.
     }  
      ```  
   
-   set `TARGET_INSTANCE_ID=<guid from response>`
+   Set `TARGET_INSTANCE_ID=<guid from response>`
  
-6. Now you should use the App ID REST API to get configuration set in source and set it in target. See the complete API documentation at: [https://appid-management.stage1.ng.bluemix.net/swagger-ui/](https://appid-management.stage1.ng.bluemix.net/swagger-ui/)
+6. Now that you've created a new App ID instance you can use the App ID REST API to retrieve configuration from the source instance and set it in target one. See the complete API documentation at: [https://appid-management.ng.bluemix.net/swagger-ui/](https://appid-management.ng.bluemix.net/swagger-ui/)
 
-     As an example we will show how to get the IDP configuration for "facebook" from source and setting in target:
+     As an example we will show how to get the Identity Provider configuration for "Facebook" from source and setting in target:
      
-     Get from source:   
+     Get from the source:   
       
       ```
     curl -X GET \
@@ -159,22 +154,22 @@ Following are the steps required to create a cloning script.
     "https://appid-management.$TARGET_REGION.bluemix.net/management/v4/$SOURCE_INSTANCE_ID/config/idps/facebook"   
       ```
 
-    Result should be 200 and contain the IDP data, e.g.:
+    Result would have HTTP 200 status code and contain the Identity Provider configuration, e.g.:
   
       ```
       {
           "isActive": true,
-          "config": {}
+          "config": {...}
       }
       ```
 
-7. Post to target:  
+7. Post to the target:  
 
    ```  
      curl -X PUT -H 'Content-Type: application/json' -H 'Accept: application/json' -H "Authorization: Bearer $IAM_TOKEN" -d '{
       "isActive": true,
-      "config": {}
+      "config": {...}
     }' "https://appid-management.$TARGET_REGION.bluemix.net/management/v4/$TARGET_INSTANCE_ID/config/idps/facebook" 
    ```  
    
- You can now continue this way to get other configuration elements from the original instance and putting them to the new instance that was created (as illustrated in steps #6 and #7 above), until you defined the way in which you want to 'clone' the resource.  	   
+Use the same approach to retrieve the configuration for other Identity Providers from your source App ID instance and set it in the target App ID instance. 
